@@ -9,12 +9,48 @@ uintptr_t baseAddress;
 
 void HookEmulator();
 void GetVariables();
+char ReadMemory(std::vector<unsigned int> offsets);
 
 
 //Variables
+
+//Varialbes-Player
 BYTE playerXPos = 0;
 BYTE playerYPos = 0;
 BYTE playerDir = 0;
+BYTE playerMapLocation = 0;
+
+//Variables-Enemies
+BYTE enemy1xPos = 0;
+BYTE enemy2xPos = 0;
+BYTE enemy3xPos = 0;
+BYTE enemy4xPos = 0;
+BYTE enemy5xPos = 0;
+BYTE enemy6xPos = 0;
+
+BYTE enemy1yPos = 0;
+BYTE enemy2yPos = 0;
+BYTE enemy3yPos = 0;
+BYTE enemy4yPos = 0;
+BYTE enemy5yPos = 0;
+BYTE enemy6yPos = 0;
+
+BYTE enemy1Dir = 0;
+BYTE enemy2Dir = 0;
+BYTE enemy3Dir = 0;
+BYTE enemy4Dir = 0;
+BYTE enemy5Dir = 0;
+BYTE enemy6Dir = 0;
+
+BYTE enemy1xProlectil = 0;
+BYTE enemy2xProlectil = 0;
+BYTE enemy3xProlectil = 0;
+BYTE enemy4xProlectil = 0;
+
+BYTE enemy1yProlectil = 0;
+BYTE enemy2yProlectil = 0;
+BYTE enemy3yProlectil = 0;
+BYTE enemy4yProlectil = 0;
 
 int main()
 {
@@ -46,17 +82,40 @@ void HookEmulator()
 
 void GetVariables()
 {
-    std::vector<unsigned int> playerXposOffsets = {0xB8, 0x78, 0x70};
-    uintptr_t playerXposAddress = FindDMAAddy(hProcess, baseAddress, playerXposOffsets);
-    ReadProcessMemory(hProcess, (BYTE*)playerXposAddress, &playerXPos, sizeof(char), nullptr);
+    //Player
+    playerXPos = ReadMemory({ 0xB8, 0x78, 0x70 });  
+    playerYPos = ReadMemory({ 0xB8, 0x78, 0x84 });
+    playerDir = ReadMemory({ 0xB8, 0x78, 0x98 });
+    playerMapLocation = ReadMemory({ 0xB8, 0x78, 0xEB });
+    
 
-    std::vector<unsigned int> playerYposOffsets = { 0xB8, 0x78, 0x84 };
-    uintptr_t playerYposAddress = FindDMAAddy(hProcess, baseAddress, playerYposOffsets);
-    ReadProcessMemory(hProcess, (BYTE*)playerYposAddress, &playerYPos, sizeof(char), nullptr);
+    //Enemies
+    enemy1xPos = ReadMemory({ 0xB8, 0x78, 0x71 });
+    enemy2xPos = ReadMemory({ 0xB8, 0x78, 0x72 });
+    enemy3xPos = ReadMemory({ 0xB8, 0x78, 0x73 });
+    enemy4xPos = ReadMemory({ 0xB8, 0x78, 0x74 });
+    enemy5xPos = ReadMemory({ 0xB8, 0x78, 0x75 });
+    enemy6xPos = ReadMemory({ 0xB8, 0x78, 0x76 });
 
-    std::vector<unsigned int> playerDirOffsets = { 0xB8, 0x78, 0x98 };
-    uintptr_t playerDirAddress = FindDMAAddy(hProcess, baseAddress, playerDirOffsets);
-    ReadProcessMemory(hProcess, (BYTE*)playerDirAddress, &playerDir, sizeof(char), nullptr);
+    enemy1yPos = ReadMemory({ 0xB8, 0x78, 0x85 });
+    enemy2yPos = ReadMemory({ 0xB8, 0x78, 0x86 });
+    enemy3yPos = ReadMemory({ 0xB8, 0x78, 0x87 });
+    enemy4yPos = ReadMemory({ 0xB8, 0x78, 0x88 });
+    enemy5yPos = ReadMemory({ 0xB8, 0x78, 0x89 });
+    enemy6yPos = ReadMemory({ 0xB8, 0x78, 0x8A });
 
-    std::cout << (int)playerDir << "\n";
+    enemy1Dir = ReadMemory({ 0xB8, 0x78, 0x99 });
+    enemy2Dir = ReadMemory({ 0xB8, 0x78, 0x9A });
+    enemy3Dir = ReadMemory({ 0xB8, 0x78, 0x9B });
+    enemy4Dir = ReadMemory({ 0xB8, 0x78, 0x9C });
+    enemy5Dir = ReadMemory({ 0xB8, 0x78, 0x9D });
+    enemy6Dir = ReadMemory({ 0xB8, 0x78, 0x9E });
+
+}
+
+char ReadMemory(std::vector<unsigned int> offsets) {
+    uintptr_t address = FindDMAAddy(hProcess, baseAddress, offsets);
+    char value;
+    ReadProcessMemory(hProcess, (BYTE*)address, &value, sizeof(value), nullptr);
+    return value;
 }
