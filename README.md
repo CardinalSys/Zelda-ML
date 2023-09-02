@@ -1,6 +1,8 @@
 # Zelda-ML
 A Machine Learning agent for The Legend of Zelda
 
+<strong>For make a pull request do it to the "develop" branch</strong>
+
 Requirements for contribute <br>
 -Zelda USA Nes ROM <br>
 -Mesen emulator 0.9.9 <br>
