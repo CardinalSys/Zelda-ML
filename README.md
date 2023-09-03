@@ -9,8 +9,9 @@ Requirements for contribute <br>
 <br>
 Workflow: <br>
 -A cpp application hooks the emulator a get the necesary variables. <br>
--Send the variables to a python application using sockets. <br>
--The pyton application using PPO of Stable Baselines 3 trains the agent on complete checkpoints until he kills the first boss. <br>
+-Read the variables with python subprocess. <br>
+-The python application using PPO of Stable Baselines 3 trains the agent on complete checkpoints until he kills the first boss. <br>
+-Send the agent input to c++ <br>
 <br>
 Useful links: <br>
 https://datacrystal.romhacking.net/wiki/The_Legend_of_Zelda:RAM_map

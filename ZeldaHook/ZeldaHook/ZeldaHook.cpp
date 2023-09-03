@@ -3,14 +3,16 @@
 #include "proc.h"
 
 
+
 uintptr_t moduleBase;
 HANDLE hProcess;
 uintptr_t baseAddress;
 
 void HookEmulator();
 void GetVariables();
+void SendInput(BYTE btn);
 char ReadMemory(std::vector<unsigned int> offsets);
-
+int Socket();
 
 //Variables
 
@@ -76,6 +78,7 @@ void HookEmulator()
         while (true)
         {
             GetVariables();
+            //Print a string with all data so python subprocess can read it
         }
         
     }
@@ -137,3 +140,4 @@ char ReadMemory(std::vector<unsigned int> offsets) {
     ReadProcessMemory(hProcess, (BYTE*)address, &value, sizeof(value), nullptr);
     return value;
 }
+
