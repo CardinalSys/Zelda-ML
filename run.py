@@ -7,3 +7,4 @@ while True:
     print(result)
     p.stdin.write(b"8\n")
     p.stdin.flush()
+s

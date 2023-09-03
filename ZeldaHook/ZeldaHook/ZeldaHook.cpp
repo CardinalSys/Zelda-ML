@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include "proc.h"
+#include <thread>
 
 
 
@@ -10,7 +11,7 @@ uintptr_t baseAddress;
 
 void HookEmulator();
 void GetVariables();
-void SendInput(BYTE btn);
+void send_input();
 char ReadMemory(std::vector<unsigned int> offsets);
 
 
@@ -59,7 +60,9 @@ BYTE enemy4yProjectil = 0;
 
 int main()
 {
+    std::thread input_thread(send_input); 
     HookEmulator();
+    input_thread.join();
 }
 
 void HookEmulator()
@@ -79,7 +82,7 @@ void HookEmulator()
         while (true)
         {
             GetVariables();
-            Sleep(1);
+            Sleep(100);
             //Print a string with all data so python subprocess can read it
             std::cout << "Player:" << (int)playerXPos << ";" << (int)playerYPos << ";" << (int)playerDir << ";" << (int)playerMapLocation;
             std::cout << "Enemies:" << (int)enemy1xPos << ";" << (int)enemy2xPos << ";" << (int)enemy3xPos << ";" << (int)enemy4xPos << ";" << (int)enemy5xPos << ";" << (int)enemy6xPos;
@@ -89,12 +92,6 @@ void HookEmulator()
             std::cout << (int)enemy1yProjectil << ";" << (int)enemy2yProjectil << ";" << (int)enemy3yProjectil << ";" << (int)enemy4yProjectil << "\n";
 
             std::cin >> input;
-
-            std::cout << input << "\n";
-
-            //Create a second thread for this
-            SendInput(input);
-
 
         }
         
@@ -143,10 +140,16 @@ void GetVariables()
     enemy4yProjectil = ReadMemory({ 0xB8, 0x78, 0x8E });
 }
 
-void SendInput(BYTE btn) {
-    LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xFA });
-    SIZE_T bytesWritten;
-    BOOL result = WriteProcessMemory(hProcess, addressToWrite, &btn, sizeof(btn), &bytesWritten);
+void send_input() {
+
+    while (true)
+    {
+        LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xFA });
+        SIZE_T bytesWritten;
+        BOOL result = WriteProcessMemory(hProcess, addressToWrite, &input, sizeof(input), &bytesWritten);
+    }
+
+
 }
 
 char ReadMemory(std::vector<unsigned int> offsets) {
@@ -155,4 +158,5 @@ char ReadMemory(std::vector<unsigned int> offsets) {
     ReadProcessMemory(hProcess, (BYTE*)address, &value, sizeof(value), nullptr);
     return value;
 }
+
 
