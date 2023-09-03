@@ -12,9 +12,10 @@ void HookEmulator();
 void GetVariables();
 void SendInput(BYTE btn);
 char ReadMemory(std::vector<unsigned int> offsets);
-int Socket();
+
 
 //Variables
+BYTE input = 0;
 
 //Varialbes-Player
 BYTE playerXPos = 0;
@@ -78,7 +79,23 @@ void HookEmulator()
         while (true)
         {
             GetVariables();
+            Sleep(1);
             //Print a string with all data so python subprocess can read it
+            std::cout << "Player:" << (int)playerXPos << ";" << (int)playerYPos << ";" << (int)playerDir << ";" << (int)playerMapLocation;
+            std::cout << "Enemies:" << (int)enemy1xPos << ";" << (int)enemy2xPos << ";" << (int)enemy3xPos << ";" << (int)enemy4xPos << ";" << (int)enemy5xPos << ";" << (int)enemy6xPos;
+            std::cout << (int)enemy1yPos << ";" << (int)enemy2yPos << ";" << (int)enemy3yPos << ";" << (int)enemy4yPos << ";" << (int)enemy5yPos << ";" << (int)enemy6yPos;
+            std::cout << (int)enemy1Dir << ";" << (int)enemy2Dir << ";" << (int)enemy3Dir << ";" << (int)enemy4Dir << ";" << (int)enemy5Dir << ";" << (int)enemy6Dir;
+            std::cout << (int)enemy1xProjectil << ";" << (int)enemy2xProjectil << ";" << (int)enemy3xProjectil << ";" << (int)enemy4xProjectil;
+            std::cout << (int)enemy1yProjectil << ";" << (int)enemy2yProjectil << ";" << (int)enemy3yProjectil << ";" << (int)enemy4yProjectil << "\n";
+
+            std::cin >> input;
+
+            std::cout << input << "\n";
+
+            //Create a second thread for this
+            SendInput(input);
+
+
         }
         
     }
@@ -130,8 +147,6 @@ void SendInput(BYTE btn) {
     LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xFA });
     SIZE_T bytesWritten;
     BOOL result = WriteProcessMemory(hProcess, addressToWrite, &btn, sizeof(btn), &bytesWritten);
-
-    std::cout << addressToWrite << "\n";
 }
 
 char ReadMemory(std::vector<unsigned int> offsets) {
