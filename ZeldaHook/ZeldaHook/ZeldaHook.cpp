@@ -20,6 +20,8 @@ BYTE playerYPos = 0;
 BYTE playerDir = 0;
 BYTE playerMapLocation = 0;
 
+BYTE playerBtnPressed = 0;
+
 //Variables-Enemies
 BYTE enemy1xPos = 0;
 BYTE enemy2xPos = 0;
@@ -42,15 +44,15 @@ BYTE enemy4Dir = 0;
 BYTE enemy5Dir = 0;
 BYTE enemy6Dir = 0;
 
-BYTE enemy1xProlectil = 0;
-BYTE enemy2xProlectil = 0;
-BYTE enemy3xProlectil = 0;
-BYTE enemy4xProlectil = 0;
+BYTE enemy1xProjectil = 0;
+BYTE enemy2xProjectil = 0;
+BYTE enemy3xProjectil = 0;
+BYTE enemy4xProjectil = 0;
 
-BYTE enemy1yProlectil = 0;
-BYTE enemy2yProlectil = 0;
-BYTE enemy3yProlectil = 0;
-BYTE enemy4yProlectil = 0;
+BYTE enemy1yProjectil = 0;
+BYTE enemy2yProjectil = 0;
+BYTE enemy3yProjectil = 0;
+BYTE enemy4yProjectil = 0;
 
 int main()
 {
@@ -74,7 +76,6 @@ void HookEmulator()
         while (true)
         {
             GetVariables();
-            Sleep(100);
         }
         
     }
@@ -87,7 +88,7 @@ void GetVariables()
     playerYPos = ReadMemory({ 0xB8, 0x78, 0x84 });
     playerDir = ReadMemory({ 0xB8, 0x78, 0x98 });
     playerMapLocation = ReadMemory({ 0xB8, 0x78, 0xEB });
-    
+    playerBtnPressed = ReadMemory({ 0xB8, 0x78, 0xFA });
 
     //Enemies
     enemy1xPos = ReadMemory({ 0xB8, 0x78, 0x71 });
@@ -111,6 +112,23 @@ void GetVariables()
     enemy5Dir = ReadMemory({ 0xB8, 0x78, 0x9D });
     enemy6Dir = ReadMemory({ 0xB8, 0x78, 0x9E });
 
+    enemy1xProjectil = ReadMemory({ 0xB8, 0x78, 0x77 });
+    enemy2xProjectil = ReadMemory({ 0xB8, 0x78, 0x78 });
+    enemy3xProjectil = ReadMemory({ 0xB8, 0x78, 0x79 });
+    enemy4xProjectil = ReadMemory({ 0xB8, 0x78, 0x7A });
+
+    enemy1yProjectil = ReadMemory({ 0xB8, 0x78, 0x8B });
+    enemy2yProjectil = ReadMemory({ 0xB8, 0x78, 0x8C });
+    enemy3yProjectil = ReadMemory({ 0xB8, 0x78, 0x8D });
+    enemy4yProjectil = ReadMemory({ 0xB8, 0x78, 0x8E });
+}
+
+void SendInput(BYTE btn) {
+    LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xFA });
+    SIZE_T bytesWritten;
+    BOOL result = WriteProcessMemory(hProcess, addressToWrite, &btn, sizeof(btn), &bytesWritten);
+
+    std::cout << addressToWrite << "\n";
 }
 
 char ReadMemory(std::vector<unsigned int> offsets) {
