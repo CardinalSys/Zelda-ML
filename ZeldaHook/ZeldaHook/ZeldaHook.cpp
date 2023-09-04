@@ -12,17 +12,22 @@ uintptr_t baseAddress;
 void HookEmulator();
 void GetVariables();
 void send_input();
+void Reset();
 char ReadMemory(std::vector<unsigned int> offsets);
 
 
 //Variables
-BYTE input = 0;
+int input = 0;
+
+BYTE allData[0xFFF0];
+
 
 //Varialbes-Player
 BYTE playerXPos = 0;
 BYTE playerYPos = 0;
 BYTE playerDir = 0;
 BYTE playerMapLocation = 0;
+BYTE playerLife = 0;
 
 BYTE playerBtnPressed = 0;
 
@@ -60,9 +65,9 @@ BYTE enemy4yProjectil = 0;
 
 int main()
 {
-    std::thread input_thread(send_input); 
+    //std::thread input_thread(send_input); 
     HookEmulator();
-    input_thread.join();
+    //input_thread.join();
 }
 
 void HookEmulator()
@@ -79,32 +84,98 @@ void HookEmulator()
         //Resolve base address
         baseAddress = moduleBase + 0x042E0F30;
 
+        for (unsigned int x = 0; x < 0xFFF0; x++)
+        {
+            std::vector<unsigned int> offsets = { 0xB8, 0x78, x };
+            uintptr_t address = FindDMAAddy(hProcess, baseAddress, offsets);
+            BYTE newData = 0;
+            ReadProcessMemory(hProcess, (BYTE*)address, &newData, sizeof(newData), nullptr);
+            allData[x] = newData;
+        }
+
+
         while (true)
         {
             GetVariables();
             Sleep(100);
             //Print a string with all data so python subprocess can read it
-            std::cout << "Player:" << (int)playerXPos << ";" << (int)playerYPos << ";" << (int)playerDir << ";" << (int)playerMapLocation;
-            std::cout << "Enemies:" << (int)enemy1xPos << ";" << (int)enemy2xPos << ";" << (int)enemy3xPos << ";" << (int)enemy4xPos << ";" << (int)enemy5xPos << ";" << (int)enemy6xPos;
-            std::cout << (int)enemy1yPos << ";" << (int)enemy2yPos << ";" << (int)enemy3yPos << ";" << (int)enemy4yPos << ";" << (int)enemy5yPos << ";" << (int)enemy6yPos;
-            std::cout << (int)enemy1Dir << ";" << (int)enemy2Dir << ";" << (int)enemy3Dir << ";" << (int)enemy4Dir << ";" << (int)enemy5Dir << ";" << (int)enemy6Dir;
-            std::cout << (int)enemy1xProjectil << ";" << (int)enemy2xProjectil << ";" << (int)enemy3xProjectil << ";" << (int)enemy4xProjectil;
+            std::cout << "Player:" << (int)playerXPos << ";" << (int)playerYPos << ";" << (int)playerDir << ";" << (int)playerMapLocation << ";" << (int)playerLife << ";";
+            std::cout << "Enemies:" << (int)enemy1xPos << ";" << (int)enemy2xPos << ";" << (int)enemy3xPos << ";" << (int)enemy4xPos << ";" << (int)enemy5xPos << ";" << (int)enemy6xPos << ";";
+            std::cout << (int)enemy1yPos << ";" << (int)enemy2yPos << ";" << (int)enemy3yPos << ";" << (int)enemy4yPos << ";" << (int)enemy5yPos << ";" << (int)enemy6yPos << ";";
+            std::cout << (int)enemy1Dir << ";" << (int)enemy2Dir << ";" << (int)enemy3Dir << ";" << (int)enemy4Dir << ";" << (int)enemy5Dir << ";" << (int)enemy6Dir << ";";
+            std::cout << (int)enemy1xProjectil << ";" << (int)enemy2xProjectil << ";" << (int)enemy3xProjectil << ";" << (int)enemy4xProjectil << ";";
             std::cout << (int)enemy1yProjectil << ";" << (int)enemy2yProjectil << ";" << (int)enemy3yProjectil << ";" << (int)enemy4yProjectil << "\n";
 
             std::cin >> input;
+            Reset();
 
         }
         
     }
 }
 
+void Reset()
+{
+    for (unsigned int x = 0; x < 0xFFF0; x++)
+    {
+        LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, x });
+        SIZE_T bytesWritten;
+        BOOL result = WriteProcessMemory(hProcess, addressToWrite, &allData[x], sizeof(allData[x]), &bytesWritten);
+    }
+    Sleep(100);
+
+    //Force graphic update
+    LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x98 });
+    SIZE_T bytesWritten;
+    BYTE data = 0x8;
+    BOOL result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
+
+    Sleep(100);
+
+    addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x12 });
+    bytesWritten;
+    data = 0x6;
+    result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
+
+    Sleep(3000);
+
+    addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x98 });
+    bytesWritten;
+    data = 0x4;
+    result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
+
+    Sleep(100);
+
+    addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x12 });
+    bytesWritten;
+    data = 0x6;
+    result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
+
+    Sleep(2000);
+
+    addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x70 });
+    bytesWritten;
+    data = 0x78;
+    result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
+
+    addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x84 });
+    bytesWritten;
+    data = 0x8D;
+    result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
+
+    exit(0);
+}
+
 void GetVariables()
 {
+
+
     //Player
     playerXPos = ReadMemory({ 0xB8, 0x78, 0x70 });  
     playerYPos = ReadMemory({ 0xB8, 0x78, 0x84 });
     playerDir = ReadMemory({ 0xB8, 0x78, 0x98 });
     playerMapLocation = ReadMemory({ 0xB8, 0x78, 0xEB });
+    playerLife = ReadMemory({ 0xB8, 0x78, 0x670 });
     playerBtnPressed = ReadMemory({ 0xB8, 0x78, 0xFA });
 
     //Enemies
@@ -148,9 +219,8 @@ void send_input() {
         SIZE_T bytesWritten;
         BOOL result = WriteProcessMemory(hProcess, addressToWrite, &input, sizeof(input), &bytesWritten);
     }
-
-
 }
+
 
 char ReadMemory(std::vector<unsigned int> offsets) {
     uintptr_t address = FindDMAAddy(hProcess, baseAddress, offsets);
