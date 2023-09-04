@@ -1,5 +1,7 @@
 from subprocess import Popen, PIPE
-
+import gymnasium as gym
+import numpy as np
+from gymnasium import spaces
 
 playerXPos = 0
 playerYPos = 0
@@ -38,6 +40,36 @@ enemy1yProjectil = 0
 enemy2yProjectil = 0
 enemy3yProjectil = 0
 enemy4yProjectil = 0
+
+class CustomEnv(gym.Env):
+    """Custom Environment that follows gym interface."""
+
+    metadata = {"render_modes": ["human"], "render_fps": 30}
+
+    def __init__(self, arg1, arg2, ...):
+        super().__init__()
+        # Define action and observation space
+        # They must be gym.spaces objects
+        # Example when using discrete actions:
+        self.action_space = spaces.Discrete(N_DISCRETE_ACTIONS)
+        # Example for using image as input (channel-first; channel-last also works):
+        self.observation_space = spaces.Box(low=0, high=255,
+                                            shape=(N_CHANNELS, HEIGHT, WIDTH), dtype=np.uint8)
+
+    def step(self, action):
+        ...
+        return observation, reward, terminated, truncated, info
+
+    def reset(self, seed=None, options=None):
+        ...
+        return observation, info
+
+    def render(self):
+        ...
+
+    def close(self):
+        ...
+
 
 
 p = Popen(['D:\\projects\\ZeldaML\\ZeldaHook\\x64\\Debug\\ZeldaHook.exe'], shell=True, stdout=PIPE, stdin=PIPE)
@@ -90,5 +122,4 @@ while True:
     
     p.stdin.write(b"8\n")
     p.stdin.flush()
-
 
