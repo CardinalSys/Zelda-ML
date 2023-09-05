@@ -66,7 +66,6 @@ class ZeldaEnv(gym.Env):
                                             shape=(32,), dtype=np.int32)
 
     def step(self, action):
-        self.repetition +=1
         result = p.stdout.readline().strip()
         print(result)
         result = result.decode('utf-8')
@@ -146,27 +145,23 @@ class ZeldaEnv(gym.Env):
         self.observation = [int(x) for x in self.observation]
         self.observation = np.array(self.observation)
 
-        #if self.repetition > 120:
-        #    self.reward -= 1
-        #    self.terminated = True
-        if int(playerYPos) - 216 < 10 and int(playerMapLocation) == 119 and self.swordZone == False:
+        print(abs(int(playerYPos) - 216))
+
+        if abs(int(playerYPos) - 216) < 10 and int(playerMapLocation) == 119 and self.swordZone == False:
             self.swordZone = True
             self.reward += 1 
 
+        if self.repetition == 1:
+            self.terminated = True
 
         if int(currentSword) == 1:
             self.reward += 5
-            self.repetition = 0
-            self.terminated = True
+            self.repetition = 1
         
         if int(playerMapLocation) != 119:
             self.reward -= 1 
             self.terminated = True 
-        #if int(playerMapLocation) - 100 < int(self.previousPlayerMapLocation) - 100:
-        #    self.reward += 1
-        #    self.repetition = 0
-        #if int(playerMapLocation) == 100:
-        #    self.observation = self.close()
+
 
         if self.terminated:
             self.observation = self.reset()
