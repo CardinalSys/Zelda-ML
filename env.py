@@ -55,16 +55,18 @@ class ZeldaEnv(gym.Env):
     def __init__(self):
         super(ZeldaEnv, self).__init__()
         self.previousPlayerMapLocation = 0
-        # Define action and observation space
+        self.repetition = 0
+        self.swordZone = False
+        # Define action and self.observation space
         # They must be gym.spaces objects
         # Example when using discrete actions:
         self.action_space = spaces.Discrete(6)
         # Example for using image as input (channel-first; channel-last also works):
         self.observation_space = spaces.Box(low=0, high=255,
-                                            shape=(31,), dtype=np.int32)
+                                            shape=(32,), dtype=np.int32)
 
     def step(self, action):
-        
+        self.repetition +=1
         result = p.stdout.readline().strip()
         print(result)
         result = result.decode('utf-8')
@@ -110,8 +112,6 @@ class ZeldaEnv(gym.Env):
         enemy3yProjectil = numbers[30]
         enemy4yProjectil = numbers[31]
 
-        # do whatever you do
-
         if action == 0:
             p.stdin.write(b"1\n")
         elif action == 1:
@@ -131,9 +131,8 @@ class ZeldaEnv(gym.Env):
         p.stdin.flush()
         self.terminated = False
         if int(playerLife) <= 0:
+            self.reward -= 5
             self.terminated = True
-
-
         
             
         self.truncated = False
@@ -147,25 +146,40 @@ class ZeldaEnv(gym.Env):
         self.observation = [int(x) for x in self.observation]
         self.observation = np.array(self.observation)
 
-        print(int(playerMapLocation) - 100)
-        print(int(self.previousPlayerMapLocation) - 100)
+        #if self.repetition > 120:
+        #    self.reward -= 1
+        #    self.terminated = True
+        if int(playerYPos) - 216 < 10 and int(playerMapLocation) == 119 and self.swordZone == False:
+            self.swordZone = True
+            self.reward += 1 
 
-        if int(playerMapLocation) - 100 < int(self.previousPlayerMapLocation) - 100:
-            self.reward += 1
-        if int(playerMapLocation) == 100:
-            self.close()
+
+        if int(currentSword) == 1:
+            self.reward += 5
+            self.repetition = 0
+            self.terminated = True
+        
+        if int(playerMapLocation) != 119:
+            self.reward -= 1 
+            self.terminated = True 
+        #if int(playerMapLocation) - 100 < int(self.previousPlayerMapLocation) - 100:
+        #    self.reward += 1
+        #    self.repetition = 0
+        #if int(playerMapLocation) == 100:
+        #    self.observation = self.close()
 
         if self.terminated:
-            self.reward = -5
-            observation = self.reset()
-            return observation, self.reward, self.terminated, self.truncated, info
+            self.observation = self.reset()
+            return self.observation, self.reward, self.terminated, self.truncated, info
     
         self.previousPlayerMapLocation = playerMapLocation
 
-        print(self.reward)
         return self.observation, self.reward, self.terminated, self.truncated, info
 
     def reset(self, seed=None, options=None):
+        self.swordZone = False
+        self.repetition = 0
+        self.previousPlayerMapLocation = 0
         self.done = False
         p.stdin.write(b"99\n")
         result = p.stdout.readline().strip()

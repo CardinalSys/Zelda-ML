@@ -129,6 +129,11 @@ void HookEmulator()
 
 void Reset()
 {
+    LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x12 });
+    SIZE_T bytesWritten;
+    BYTE data = 0x5;
+    BOOL result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
+
     for (unsigned int x = 0; x < 0xFFF0; x++)
     {
         LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, x });
@@ -138,10 +143,10 @@ void Reset()
     Sleep(100);
 
     //Force graphic update
-    LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x98 });
-    SIZE_T bytesWritten;
-    BYTE data = 0x8;
-    BOOL result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
+    addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x98 });
+    bytesWritten;
+    data = 0x8;
+    result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
 
     Sleep(100);
 
@@ -241,7 +246,7 @@ void send_input() {
             else
                 addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xFA });
             SIZE_T bytesWritten;
-            //BOOL result = WriteProcessMemory(hProcess, addressToWrite, &input, sizeof(input), &bytesWritten);
+            BOOL result = WriteProcessMemory(hProcess, addressToWrite, &input, sizeof(input), &bytesWritten);
         }
         mtx.unlock();
 
