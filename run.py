@@ -56,7 +56,7 @@ class ZeldaEnv(gym.Env):
         # Define action and observation space
         # They must be gym.spaces objects
         # Example when using discrete actions:
-        self.action_space = spaces.Discrete(7)
+        self.action_space = spaces.Discrete(6)
         # Example for using image as input (channel-first; channel-last also works):
         self.observation_space = spaces.Box(low=0, high=255,
                                             shape=(31,), dtype=np.int32)
@@ -118,12 +118,9 @@ class ZeldaEnv(gym.Env):
         elif action == 3:
             p.stdin.write(b"8\n")
         elif action == 4:
-            p.stdin.write(b"16\n")
-        elif action == 5:
             p.stdin.write(b"64\n")
-        elif action == 6:
-            p.stdin.write(b"128\n")
-   
+        elif action == 5:
+            p.stdin.write(b"128\n") 
         
         print(int(playerLife))
 
@@ -134,11 +131,7 @@ class ZeldaEnv(gym.Env):
         if int(playerLife) <= 0:
             self.terminated = True
 
-        if self.terminated:
-            self.reward = -10
-        elif int(playerMapLocation) - 66 < int(previousPlayerMapLocation) - 66:
-            self.reward += 1
-        
+
         
             
         self.truncated = False
@@ -151,6 +144,14 @@ class ZeldaEnv(gym.Env):
         
         self.observation = [int(x) for x in self.observation]
         self.observation = np.array(self.observation)
+
+        if self.terminated:
+            self.reward = -10
+            observation = self.reset()
+            return observation, self.reward, self.terminated, self.truncated, info
+        elif int(playerMapLocation) - 66 < int(previousPlayerMapLocation) - 66:
+            self.reward += 1
+        
 
         return self.observation, self.reward, self.terminated, self.truncated, info
 

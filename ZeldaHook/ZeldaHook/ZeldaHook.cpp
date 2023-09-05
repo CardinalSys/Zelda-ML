@@ -21,6 +21,7 @@ char ReadMemory(std::vector<unsigned int> offsets);
 //Variables
 int input = 0;
 bool isReseting = false;
+bool isOpeningMenu = false;
 
 BYTE allData[0xFFF0];
 
@@ -86,7 +87,7 @@ void HookEmulator()
         hProcess = OpenProcess(PROCESS_ALL_ACCESS, NULL, procId);
         //Resolve base address
         baseAddress = moduleBase + 0x042E0F30;
-
+        mtx.lock();
         for (unsigned int x = 0; x < 0xFFF0; x++)
         {
             std::vector<unsigned int> offsets = { 0xB8, 0x78, x };
@@ -95,6 +96,7 @@ void HookEmulator()
             ReadProcessMemory(hProcess, (BYTE*)address, &newData, sizeof(newData), nullptr);
             allData[x] = newData;
         }
+        mtx.unlock();
 
 
         while (true)
@@ -229,7 +231,13 @@ void send_input() {
         mtx.lock();
         if (!isReseting)
         {
-            LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xFA });
+            LPVOID addressToWrite;
+            if (input == 128)
+            {
+                addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xF8 });
+            }           
+            else
+                addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xFA });
             SIZE_T bytesWritten;
             BOOL result = WriteProcessMemory(hProcess, addressToWrite, &input, sizeof(input), &bytesWritten);
         }
