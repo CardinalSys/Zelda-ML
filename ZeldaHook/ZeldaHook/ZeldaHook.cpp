@@ -32,6 +32,7 @@ BYTE playerYPos = 0;
 BYTE playerDir = 0;
 BYTE playerMapLocation = 0;
 BYTE playerLife = 0;
+BYTE currentSword = 0;
 
 BYTE playerBtnPressed = 0;
 
@@ -104,7 +105,7 @@ void HookEmulator()
             GetVariables();
             Sleep(100);
             //Print a string with all data so python subprocess can read it
-            std::cout << "Player:" << (int)playerXPos << ";" << (int)playerYPos << ";" << (int)playerDir << ";" << (int)playerMapLocation << ";" << (int)playerLife << ";";
+            std::cout << "Player:" << (int)playerXPos << ";" << (int)playerYPos << ";" << (int)playerDir << ";" << (int)playerMapLocation << ";" << (int)playerLife << ";" << (int)currentSword << ";";
             std::cout << "Enemies:" << (int)enemy1xPos << ";" << (int)enemy2xPos << ";" << (int)enemy3xPos << ";" << (int)enemy4xPos << ";" << (int)enemy5xPos << ";" << (int)enemy6xPos << ";";
             std::cout << (int)enemy1yPos << ";" << (int)enemy2yPos << ";" << (int)enemy3yPos << ";" << (int)enemy4yPos << ";" << (int)enemy5yPos << ";" << (int)enemy6yPos << ";";
             std::cout << (int)enemy1Dir << ";" << (int)enemy2Dir << ";" << (int)enemy3Dir << ";" << (int)enemy4Dir << ";" << (int)enemy5Dir << ";" << (int)enemy6Dir << ";";
@@ -190,6 +191,7 @@ void GetVariables()
     playerMapLocation = ReadMemory({ 0xB8, 0x78, 0xEB });
     playerLife = ReadMemory({ 0xB8, 0x78, 0x670 });
     playerBtnPressed = ReadMemory({ 0xB8, 0x78, 0xFA });
+    currentSword = ReadMemory({ 0xB8, 0x78, 0x657 });
 
     //Enemies
     enemy1xPos = ReadMemory({ 0xB8, 0x78, 0x71 });
@@ -239,7 +241,7 @@ void send_input() {
             else
                 addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xFA });
             SIZE_T bytesWritten;
-            BOOL result = WriteProcessMemory(hProcess, addressToWrite, &input, sizeof(input), &bytesWritten);
+            //BOOL result = WriteProcessMemory(hProcess, addressToWrite, &input, sizeof(input), &bytesWritten);
         }
         mtx.unlock();
 

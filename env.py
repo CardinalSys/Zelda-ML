@@ -10,6 +10,7 @@ playerDir = 0
 playerMapLocation = 0
 previousPlayerMapLocation = 0
 playerLife = 0
+currentSword = 0
 
 playerBtnPressed = 0
 
@@ -48,11 +49,12 @@ p = Popen(['D:\\projects\\ZeldaML\\ZeldaHook\\x64\\Debug\\ZeldaHook.exe'], shell
 
 class ZeldaEnv(gym.Env):
     """Custom Environment that follows gym interface."""
-
+    
     metadata = {"render_modes": ["human"], "render_fps": 60}
 
     def __init__(self):
         super(ZeldaEnv, self).__init__()
+        self.previousPlayerMapLocation = 0
         # Define action and observation space
         # They must be gym.spaces objects
         # Example when using discrete actions:
@@ -75,37 +77,38 @@ class ZeldaEnv(gym.Env):
         playerDir = numbers[2]
         playerMapLocation = numbers[3]
         playerLife = numbers[4]
+        currentSword = numbers[5]
 
-        enemy1xPos = numbers[5]
-        enemy2xPos = numbers[6]
-        enemy3xPos = numbers[7]
-        enemy4xPos = numbers[8]
-        enemy5xPos = numbers[9]
-        enemy6xPos = numbers[10]
+        enemy1xPos = numbers[6]
+        enemy2xPos = numbers[7]
+        enemy3xPos = numbers[8]
+        enemy4xPos = numbers[9]
+        enemy5xPos = numbers[10]
+        enemy6xPos = numbers[11]
 
-        enemy1xPos = numbers[11]
-        enemy2yPos = numbers[12]
-        enemy3yPos = numbers[13]
-        enemy4yPos = numbers[14]
-        enemy5yPos = numbers[15]
-        enemy6yPos = numbers[16]
+        enemy1xPos = numbers[12]
+        enemy2yPos = numbers[13]
+        enemy3yPos = numbers[14]
+        enemy4yPos = numbers[15]
+        enemy5yPos = numbers[16]
+        enemy6yPos = numbers[17]
 
-        enemy1Dir = numbers[17]
-        enemy2Dir = numbers[18]
-        enemy3Dir = numbers[19]
-        enemy4Dir = numbers[20]
-        enemy5Dir = numbers[21]
-        enemy6Dir = numbers[22]
+        enemy1Dir = numbers[18]
+        enemy2Dir = numbers[19]
+        enemy3Dir = numbers[20]
+        enemy4Dir = numbers[21]
+        enemy5Dir = numbers[22]
+        enemy6Dir = numbers[23]
 
-        enemy1xProjectil = numbers[23]
-        enemy2xProjectil = numbers[24]
-        enemy3xProjectil = numbers[25]
-        enemy4xProjectil = numbers[26]
+        enemy1xProjectil = numbers[24]
+        enemy2xProjectil = numbers[25]
+        enemy3xProjectil = numbers[26]
+        enemy4xProjectil = numbers[27]
 
-        enemy1yProjectil = numbers[27]
-        enemy2yProjectil = numbers[28]
-        enemy3yProjectil = numbers[29]
-        enemy4yProjectil = numbers[30]
+        enemy1yProjectil = numbers[28]
+        enemy2yProjectil = numbers[29]
+        enemy3yProjectil = numbers[30]
+        enemy4yProjectil = numbers[31]
 
         # do whatever you do
 
@@ -122,7 +125,6 @@ class ZeldaEnv(gym.Env):
         elif action == 5:
             p.stdin.write(b"128\n") 
         
-        print(int(playerLife))
 
         self.reward = 0
         
@@ -137,7 +139,7 @@ class ZeldaEnv(gym.Env):
         self.truncated = False
         info = {}
 
-        self.observation = [playerXPos, playerYPos, playerDir, playerMapLocation, playerLife, enemy1xPos, enemy2xPos, enemy3xPos, enemy4xPos,
+        self.observation = [playerXPos, playerYPos, playerDir, playerMapLocation, playerLife, currentSword, enemy1xPos, enemy2xPos, enemy3xPos, enemy4xPos,
                              enemy5xPos, enemy6xPos, enemy1yPos, enemy2yPos, enemy3yPos, enemy4yPos, enemy5yPos, enemy6yPos,
                              enemy1Dir, enemy2Dir, enemy3Dir, enemy4Dir, enemy5Dir, enemy6Dir, enemy1xProjectil, enemy2xProjectil,
                              enemy3xProjectil, enemy4xProjectil, enemy1yProjectil, enemy2yProjectil, enemy3yProjectil, enemy4yProjectil]
@@ -145,14 +147,22 @@ class ZeldaEnv(gym.Env):
         self.observation = [int(x) for x in self.observation]
         self.observation = np.array(self.observation)
 
+        print(int(playerMapLocation) - 100)
+        print(int(self.previousPlayerMapLocation) - 100)
+
+        if int(playerMapLocation) - 100 < int(self.previousPlayerMapLocation) - 100:
+            self.reward += 1
+        if int(playerMapLocation) == 100:
+            self.close()
+
         if self.terminated:
-            self.reward = -10
+            self.reward = -5
             observation = self.reset()
             return observation, self.reward, self.terminated, self.truncated, info
-        elif int(playerMapLocation) - 66 < int(previousPlayerMapLocation) - 66:
-            self.reward += 1
-        
+    
+        self.previousPlayerMapLocation = playerMapLocation
 
+        print(self.reward)
         return self.observation, self.reward, self.terminated, self.truncated, info
 
     def reset(self, seed=None, options=None):
@@ -170,39 +180,40 @@ class ZeldaEnv(gym.Env):
         playerDir = numbers[2]
         playerMapLocation = numbers[3]
         playerLife = numbers[4]
+        currentSword = numbers[5]
 
-        enemy1xPos = numbers[5]
-        enemy2xPos = numbers[6]
-        enemy3xPos = numbers[7]
-        enemy4xPos = numbers[8]
-        enemy5xPos = numbers[9]
-        enemy6xPos = numbers[10]
+        enemy1xPos = numbers[6]
+        enemy2xPos = numbers[7]
+        enemy3xPos = numbers[8]
+        enemy4xPos = numbers[9]
+        enemy5xPos = numbers[10]
+        enemy6xPos = numbers[11]
 
-        enemy1xPos = numbers[11]
-        enemy2yPos = numbers[12]
-        enemy3yPos = numbers[13]
-        enemy4yPos = numbers[14]
-        enemy5yPos = numbers[15]
-        enemy6yPos = numbers[16]
+        enemy1xPos = numbers[12]
+        enemy2yPos = numbers[13]
+        enemy3yPos = numbers[14]
+        enemy4yPos = numbers[15]
+        enemy5yPos = numbers[16]
+        enemy6yPos = numbers[17]
 
-        enemy1Dir = numbers[17]
-        enemy2Dir = numbers[18]
-        enemy3Dir = numbers[19]
-        enemy4Dir = numbers[20]
-        enemy5Dir = numbers[21]
-        enemy6Dir = numbers[22]
+        enemy1Dir = numbers[18]
+        enemy2Dir = numbers[19]
+        enemy3Dir = numbers[20]
+        enemy4Dir = numbers[21]
+        enemy5Dir = numbers[22]
+        enemy6Dir = numbers[23]
 
-        enemy1xProjectil = numbers[23]
-        enemy2xProjectil = numbers[24]
-        enemy3xProjectil = numbers[25]
-        enemy4xProjectil = numbers[26]
+        enemy1xProjectil = numbers[24]
+        enemy2xProjectil = numbers[25]
+        enemy3xProjectil = numbers[26]
+        enemy4xProjectil = numbers[27]
 
-        enemy1yProjectil = numbers[27]
-        enemy2yProjectil = numbers[28]
-        enemy3yProjectil = numbers[29]
-        enemy4yProjectil = numbers[30]
+        enemy1yProjectil = numbers[28]
+        enemy2yProjectil = numbers[29]
+        enemy3yProjectil = numbers[30]
+        enemy4yProjectil = numbers[31]
         p.stdin.flush()
-        self.observation = [playerXPos, playerYPos, playerDir, playerMapLocation, playerLife, enemy1xPos, enemy2xPos, enemy3xPos, enemy4xPos,
+        self.observation = [playerXPos, playerYPos, playerDir, playerMapLocation, playerLife, currentSword, enemy1xPos, enemy2xPos, enemy3xPos, enemy4xPos,
                              enemy5xPos, enemy6xPos, enemy1yPos, enemy2yPos, enemy3yPos, enemy4yPos, enemy5yPos, enemy6yPos,
                              enemy1Dir, enemy2Dir, enemy3Dir, enemy4Dir, enemy5Dir, enemy6Dir, enemy1xProjectil, enemy2xProjectil,
                              enemy3xProjectil, enemy4xProjectil, enemy1yProjectil, enemy2yProjectil, enemy3yProjectil, enemy4yProjectil]
@@ -211,53 +222,3 @@ class ZeldaEnv(gym.Env):
         self.observation = np.array(self.observation)
         info = {}
         return self.observation, info
-
-
-
-def GetVariables():
-    result = p.stdout.readline().strip()
-    print(result)
-    result = result.decode('utf-8')
-    result = result.replace('Player:', '').replace('Enemies:', '')
-
-    numbers = result.split(';')
-
-    playerXPos = numbers[0]
-    playerYPos = numbers[1]
-    playerDir = numbers[2]
-    playerMapLocation = numbers[3]
-    playerLife = numbers[4]
-
-    enemy1xPos = numbers[5]
-    enemy2xPos = numbers[6]
-    enemy3xPos = numbers[7]
-    enemy4xPos = numbers[8]
-    enemy5xPos = numbers[9]
-    enemy6xPos = numbers[10]
-
-    enemy1xPos = numbers[11]
-    enemy2yPos = numbers[12]
-    enemy3yPos = numbers[13]
-    enemy4yPos = numbers[14]
-    enemy5yPos = numbers[15]
-    enemy6yPos = numbers[16]
-
-    enemy1Dir = numbers[17]
-    enemy2Dir = numbers[18]
-    enemy3Dir = numbers[19]
-    enemy4Dir = numbers[20]
-    enemy5Dir = numbers[21]
-    enemy6Dir = numbers[22]
-
-    enemy1xProjectil = numbers[23]
-    enemy2xProjectil = numbers[24]
-    enemy3xProjectil = numbers[25]
-    enemy4xProjectil = numbers[26]
-
-    enemy1yProjectil = numbers[27]
-    enemy2yProjectil = numbers[28]
-    enemy3yProjectil = numbers[29]
-    enemy4yProjectil = numbers[30]
-
-    p.stdin.flush()
-
