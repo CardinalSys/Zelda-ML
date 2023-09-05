@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include "proc.h"
 #include <thread>
+#include <mutex>
+#include <string>
 
 
-
+std::mutex mtx;
 uintptr_t moduleBase;
 HANDLE hProcess;
 uintptr_t baseAddress;
@@ -18,6 +20,7 @@ char ReadMemory(std::vector<unsigned int> offsets);
 
 //Variables
 int input = 0;
+bool isReseting = false;
 
 BYTE allData[0xFFF0];
 
@@ -65,9 +68,9 @@ BYTE enemy4yProjectil = 0;
 
 int main()
 {
-    //std::thread input_thread(send_input); 
+    std::thread input_thread(send_input); 
     HookEmulator();
-    //input_thread.join();
+    input_thread.join();
 }
 
 void HookEmulator()
@@ -106,9 +109,16 @@ void HookEmulator()
             std::cout << (int)enemy1xProjectil << ";" << (int)enemy2xProjectil << ";" << (int)enemy3xProjectil << ";" << (int)enemy4xProjectil << ";";
             std::cout << (int)enemy1yProjectil << ";" << (int)enemy2yProjectil << ";" << (int)enemy3yProjectil << ";" << (int)enemy4yProjectil << "\n";
 
-            std::cin >> input;
-            Reset();
 
+            std::cin >> input;
+
+            mtx.lock();
+            if (input == 99 && !isReseting)
+            {
+                isReseting = true;
+                Reset();
+            }
+            mtx.unlock();
         }
         
     }
@@ -163,7 +173,8 @@ void Reset()
     data = 0x8D;
     result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
 
-    exit(0);
+    input = 0;
+    isReseting = false;
 }
 
 void GetVariables()
@@ -212,12 +223,18 @@ void GetVariables()
 }
 
 void send_input() {
-
+    
     while (true)
     {
-        LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xFA });
-        SIZE_T bytesWritten;
-        BOOL result = WriteProcessMemory(hProcess, addressToWrite, &input, sizeof(input), &bytesWritten);
+        mtx.lock();
+        if (!isReseting)
+        {
+            LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xFA });
+            SIZE_T bytesWritten;
+            BOOL result = WriteProcessMemory(hProcess, addressToWrite, &input, sizeof(input), &bytesWritten);
+        }
+        mtx.unlock();
+
     }
 }
 
