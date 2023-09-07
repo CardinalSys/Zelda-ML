@@ -8,9 +8,8 @@ from stable_baselines3.common.env_util import make_vec_env
 vec_env = ZeldaEnv()
 logdir = f"logs/{int(time.time())}/"
 model = PPO('MlpPolicy', vec_env, verbose=1, tensorboard_log=logdir)
-model.learn(total_timesteps=25000)
+model.learn(total_timesteps=250000)
 model.save(f"models/{int(time.time())}/")
-
 
 obs = vec_env.reset()
 while True:

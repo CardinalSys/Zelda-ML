@@ -45,6 +45,8 @@ enemy2yProjectil = 0
 enemy3yProjectil = 0
 enemy4yProjectil = 0
 
+killsCount = 0
+
 p = Popen(['D:\\projects\\ZeldaML\\ZeldaHook\\x64\\Debug\\ZeldaHook.exe'], shell=True, stdout=PIPE, stdin=PIPE)
 
 class ZeldaEnv(gym.Env):
@@ -57,15 +59,18 @@ class ZeldaEnv(gym.Env):
         self.previousPlayerMapLocation = 0
         self.repetition = 0
         self.swordZone = False
+        self.hasSword = False
+        self.lastKillsCount = 0
         # Define action and self.observation space
         # They must be gym.spaces objects
         # Example when using discrete actions:
         self.action_space = spaces.Discrete(6)
         # Example for using image as input (channel-first; channel-last also works):
         self.observation_space = spaces.Box(low=0, high=255,
-                                            shape=(32,), dtype=np.int32)
+                                            shape=(36,), dtype=np.int32)
 
     def step(self, action):
+        self.repetition += 1
         result = p.stdout.readline().strip()
         print(result)
         result = result.decode('utf-8')
@@ -111,6 +116,8 @@ class ZeldaEnv(gym.Env):
         enemy3yProjectil = numbers[30]
         enemy4yProjectil = numbers[31]
 
+        killsCount = numbers[32]
+
         if action == 0:
             p.stdin.write(b"1\n")
         elif action == 1:
@@ -124,14 +131,23 @@ class ZeldaEnv(gym.Env):
         elif action == 5:
             p.stdin.write(b"128\n") 
         
-
         self.reward = 0
         
         p.stdin.flush()
         self.terminated = False
-        if int(playerLife) <= 0:
+
+        if int(playerLife) == 125:
             self.reward -= 5
             self.terminated = True
+
+        if int(currentSword) == 1 and self.hasSword == False:
+            self.hasSword = True
+            self.repetition = 0
+            self.reward += 5
+
+        if int(killsCount) > int(self.lastKillsCount): 
+            self.reward += int(killsCount)
+            self.repetition = 0
         
             
         self.truncated = False
@@ -140,38 +156,27 @@ class ZeldaEnv(gym.Env):
         self.observation = [playerXPos, playerYPos, playerDir, playerMapLocation, playerLife, currentSword, enemy1xPos, enemy2xPos, enemy3xPos, enemy4xPos,
                              enemy5xPos, enemy6xPos, enemy1yPos, enemy2yPos, enemy3yPos, enemy4yPos, enemy5yPos, enemy6yPos,
                              enemy1Dir, enemy2Dir, enemy3Dir, enemy4Dir, enemy5Dir, enemy6Dir, enemy1xProjectil, enemy2xProjectil,
-                             enemy3xProjectil, enemy4xProjectil, enemy1yProjectil, enemy2yProjectil, enemy3yProjectil, enemy4yProjectil]
+                             enemy3xProjectil, enemy4xProjectil, enemy1yProjectil, enemy2yProjectil, enemy3yProjectil, enemy4yProjectil, self.lastKillsCount, killsCount, self.repetition, self.previousPlayerMapLocation]
         
         self.observation = [int(x) for x in self.observation]
         self.observation = np.array(self.observation)
-
-        print(abs(int(playerYPos) - 216))
-
-        if abs(int(playerYPos) - 216) < 10 and int(playerMapLocation) == 119 and self.swordZone == False:
-            self.swordZone = True
-            self.reward += 1 
-
-        if self.repetition == 1:
-            self.terminated = True
-
-        if int(currentSword) == 1:
-            self.reward += 5
-            self.repetition = 1
         
-        if int(playerMapLocation) != 119:
-            self.reward -= 1 
-            self.terminated = True 
 
 
         if self.terminated:
             self.observation = self.reset()
             return self.observation, self.reward, self.terminated, self.truncated, info
-    
+
+        if self.previousPlayerMapLocation == playerMapLocation and self.repetition > 300:
+            self.reward -=1
         self.previousPlayerMapLocation = playerMapLocation
+        self.lastKillsCount = killsCount
 
         return self.observation, self.reward, self.terminated, self.truncated, info
 
     def reset(self, seed=None, options=None):
+        self.lastKillsCount = 0
+        self.hasSword = False
         self.swordZone = False
         self.repetition = 0
         self.previousPlayerMapLocation = 0
@@ -221,11 +226,12 @@ class ZeldaEnv(gym.Env):
         enemy2yProjectil = numbers[29]
         enemy3yProjectil = numbers[30]
         enemy4yProjectil = numbers[31]
+        killsCount = numbers[32]
         p.stdin.flush()
         self.observation = [playerXPos, playerYPos, playerDir, playerMapLocation, playerLife, currentSword, enemy1xPos, enemy2xPos, enemy3xPos, enemy4xPos,
                              enemy5xPos, enemy6xPos, enemy1yPos, enemy2yPos, enemy3yPos, enemy4yPos, enemy5yPos, enemy6yPos,
                              enemy1Dir, enemy2Dir, enemy3Dir, enemy4Dir, enemy5Dir, enemy6Dir, enemy1xProjectil, enemy2xProjectil,
-                             enemy3xProjectil, enemy4xProjectil, enemy1yProjectil, enemy2yProjectil, enemy3yProjectil, enemy4yProjectil]
+                             enemy3xProjectil, enemy4xProjectil, enemy1yProjectil, enemy2yProjectil, enemy3yProjectil, enemy4yProjectil, self.lastKillsCount, killsCount, self.repetition, self.previousPlayerMapLocation]
         
         self.observation = [int(x) for x in self.observation]
         self.observation = np.array(self.observation)

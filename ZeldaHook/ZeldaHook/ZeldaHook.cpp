@@ -4,7 +4,7 @@
 #include <thread>
 #include <mutex>
 #include <string>
-
+#include <iomanip>
 
 std::mutex mtx;
 uintptr_t moduleBase;
@@ -15,6 +15,7 @@ void HookEmulator();
 void GetVariables();
 void send_input();
 void Reset();
+void WriteMemory(std::vector<unsigned int> offsets, BYTE value);
 char ReadMemory(std::vector<unsigned int> offsets);
 
 
@@ -23,8 +24,9 @@ int input = 0;
 bool isReseting = false;
 bool isOpeningMenu = false;
 
-BYTE allData[0xFFF0];
-
+BYTE CPUMemory[0xFFFF];
+BYTE nameTableMemory[0x3FFF];
+BYTE paletteMemory[0x1F];
 
 //Varialbes-Player
 BYTE playerXPos = 0;
@@ -35,6 +37,8 @@ BYTE playerLife = 0;
 BYTE currentSword = 0;
 
 BYTE playerBtnPressed = 0;
+BYTE gameStatus = 0;
+BYTE killsCount = 0;
 
 //Variables-Enemies
 BYTE enemy1xPos = 0;
@@ -89,13 +93,35 @@ void HookEmulator()
         //Resolve base address
         baseAddress = moduleBase + 0x042E0F30;
         mtx.lock();
-        for (unsigned int x = 0; x < 0xFFF0; x++)
+
+        //Save CPU
+        for (unsigned int x = 0; x < 0xFFFF; x++)
         {
-            std::vector<unsigned int> offsets = { 0xB8, 0x78, x };
+            std::vector<unsigned int> offsets = { 0xB8, 0x58, x };
             uintptr_t address = FindDMAAddy(hProcess, baseAddress, offsets);
             BYTE newData = 0;
             ReadProcessMemory(hProcess, (BYTE*)address, &newData, sizeof(newData), nullptr);
-            allData[x] = newData;
+            CPUMemory[x] = newData;
+        }
+
+        //Save nametable
+        for (unsigned int x = 0; x < 0x3FF0; x++)
+        {
+            std::vector<unsigned int> offsets = {0x98, 0x70, x};
+            uintptr_t address = FindDMAAddy(hProcess, baseAddress, offsets);
+            BYTE newData = 0;
+            ReadProcessMemory(hProcess, (BYTE*)address, &newData, sizeof(newData), nullptr);
+            nameTableMemory[x] = newData;
+        }
+
+        //Save pallete
+        for (unsigned int x = 0; x < 0x1F; x++)
+        {
+            std::vector<unsigned int> offsets = { 0x68, 0x82 + x};
+            uintptr_t address = FindDMAAddy(hProcess, baseAddress, offsets);
+            BYTE newData = 0;
+            ReadProcessMemory(hProcess, (BYTE*)address, &newData, sizeof(newData), nullptr);
+            paletteMemory[x] = newData;
         }
         mtx.unlock();
 
@@ -110,7 +136,7 @@ void HookEmulator()
             std::cout << (int)enemy1yPos << ";" << (int)enemy2yPos << ";" << (int)enemy3yPos << ";" << (int)enemy4yPos << ";" << (int)enemy5yPos << ";" << (int)enemy6yPos << ";";
             std::cout << (int)enemy1Dir << ";" << (int)enemy2Dir << ";" << (int)enemy3Dir << ";" << (int)enemy4Dir << ";" << (int)enemy5Dir << ";" << (int)enemy6Dir << ";";
             std::cout << (int)enemy1xProjectil << ";" << (int)enemy2xProjectil << ";" << (int)enemy3xProjectil << ";" << (int)enemy4xProjectil << ";";
-            std::cout << (int)enemy1yProjectil << ";" << (int)enemy2yProjectil << ";" << (int)enemy3yProjectil << ";" << (int)enemy4yProjectil << "\n";
+            std::cout << (int)enemy1yProjectil << ";" << (int)enemy2yProjectil << ";" << (int)enemy3yProjectil << ";" << (int)enemy4yProjectil << ";" << (int)killsCount << "\n";
 
 
             std::cin >> input;
@@ -127,59 +153,47 @@ void HookEmulator()
     }
 }
 
+
 void Reset()
 {
-    LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x12 });
-    SIZE_T bytesWritten;
-    BYTE data = 0x5;
-    BOOL result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
-
-    for (unsigned int x = 0; x < 0xFFF0; x++)
+    //Reset CPU
+    for (unsigned int x = 0; x < 0xFFFF; x++)
     {
-        LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, x });
-        SIZE_T bytesWritten;
-        BOOL result = WriteProcessMemory(hProcess, addressToWrite, &allData[x], sizeof(allData[x]), &bytesWritten);
+        WriteMemory({ 0xB8, 0x58, x }, CPUMemory[x]);
     }
+
+    //Reset nametable
+    for (unsigned int x = 0; x < 0x3FF0; x++)
+    {
+        WriteMemory({ 0x98, 0x70, x }, nameTableMemory[x]);
+    }
+
+    //Reset palette
+    for (unsigned int x = 0; x < 0x1F; x++)
+    {
+        WriteMemory({ 0x68, 0x82 + x }, paletteMemory[x]);
+    }
+
+    WriteMemory({ 0xB8, 0x78, 0x98 }, 0x8);
+
     Sleep(100);
 
-    //Force graphic update
-    addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x98 });
-    bytesWritten;
-    data = 0x8;
-    result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
-
-    Sleep(100);
-
-    addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x12 });
-    bytesWritten;
-    data = 0x6;
-    result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
+    WriteMemory({ 0xB8, 0x78, 0x12 }, 0x6);
 
     Sleep(3000);
 
-    addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x98 });
-    bytesWritten;
-    data = 0x4;
-    result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
+    WriteMemory({ 0xB8, 0x78, 0x98 }, 0x4);
 
     Sleep(100);
 
-    addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x12 });
-    bytesWritten;
-    data = 0x6;
-    result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
+    WriteMemory({ 0xB8, 0x78, 0x12 }, 0x6);
 
     Sleep(2000);
 
-    addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x70 });
-    bytesWritten;
-    data = 0x78;
-    result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
+    WriteMemory({ 0xB8, 0x78, 0x70 }, 0x78);
 
-    addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0x84 });
-    bytesWritten;
-    data = 0x8D;
-    result = WriteProcessMemory(hProcess, addressToWrite, &data, sizeof(data), &bytesWritten);
+    WriteMemory({ 0xB8, 0x78, 0x84 }, 0x8D);
+
 
     input = 0;
     isReseting = false;
@@ -197,6 +211,8 @@ void GetVariables()
     playerLife = ReadMemory({ 0xB8, 0x78, 0x670 });
     playerBtnPressed = ReadMemory({ 0xB8, 0x78, 0xFA });
     currentSword = ReadMemory({ 0xB8, 0x78, 0x657 });
+    gameStatus = ReadMemory({ 0xB8, 0x78, 0x12 });
+    killsCount = ReadMemory({ 0xB8, 0x78, 0x627 });
 
     //Enemies
     enemy1xPos = ReadMemory({ 0xB8, 0x78, 0x71 });
@@ -236,17 +252,17 @@ void send_input() {
     while (true)
     {
         mtx.lock();
-        if (!isReseting)
+        if (!isReseting && (gameStatus == 5 || gameStatus == 11))
         {
             LPVOID addressToWrite;
             if (input == 128)
             {
-                addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xF8 });
+                //addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xF8 });
             }           
             else
                 addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xFA });
             SIZE_T bytesWritten;
-            BOOL result = WriteProcessMemory(hProcess, addressToWrite, &input, sizeof(input), &bytesWritten);
+            //BOOL result = WriteProcessMemory(hProcess, addressToWrite, &input, sizeof(input), &bytesWritten);
         }
         mtx.unlock();
 
@@ -259,6 +275,13 @@ char ReadMemory(std::vector<unsigned int> offsets) {
     char value;
     ReadProcessMemory(hProcess, (BYTE*)address, &value, sizeof(value), nullptr);
     return value;
+}
+
+void WriteMemory(std::vector<unsigned int> offsets, BYTE value)
+{
+    LPVOID addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, offsets);
+    SIZE_T bytesWritten;
+    BOOL result = WriteProcessMemory(hProcess, addressToWrite, &value, sizeof(value), &bytesWritten);
 }
 
 
