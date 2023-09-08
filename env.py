@@ -14,6 +14,7 @@ currentSword = 0
 
 playerBtnPressed = 0
 
+
 enemy1xPos = 0
 enemy2xPos = 0
 enemy3xPos = 0
@@ -72,7 +73,6 @@ class ZeldaEnv(gym.Env):
     def step(self, action):
         self.repetition += 1
         result = p.stdout.readline().strip()
-        print(result)
         result = result.decode('utf-8')
         result = result.replace('Player:', '').replace('Enemies:', '')
 
@@ -149,6 +149,11 @@ class ZeldaEnv(gym.Env):
             self.reward += int(killsCount)
             self.repetition = 0
         
+        if self.repetition == 300:
+            self.repetition = 0
+            self.reward -= 1
+            self.terminated = True
+
             
         self.truncated = False
         info = {}
@@ -161,16 +166,12 @@ class ZeldaEnv(gym.Env):
         self.observation = [int(x) for x in self.observation]
         self.observation = np.array(self.observation)
         
-
+        self.previousPlayerMapLocation = playerMapLocation
+        self.lastKillsCount = killsCount
 
         if self.terminated:
             self.observation = self.reset()
             return self.observation, self.reward, self.terminated, self.truncated, info
-
-        if self.previousPlayerMapLocation == playerMapLocation and self.repetition > 300:
-            self.reward -=1
-        self.previousPlayerMapLocation = playerMapLocation
-        self.lastKillsCount = killsCount
 
         return self.observation, self.reward, self.terminated, self.truncated, info
 
@@ -183,7 +184,6 @@ class ZeldaEnv(gym.Env):
         self.done = False
         p.stdin.write(b"99\n")
         result = p.stdout.readline().strip()
-        print(result)
         result = result.decode('utf-8')
         result = result.replace('Player:', '').replace('Enemies:', '')
 

@@ -5,11 +5,14 @@
 #include <mutex>
 #include <string>
 #include <iomanip>
+#include <chrono>
 
 std::mutex mtx;
 uintptr_t moduleBase;
 HANDLE hProcess;
 uintptr_t baseAddress;
+
+bool stop = false;
 
 void HookEmulator();
 void GetVariables();
@@ -21,6 +24,13 @@ char ReadMemory(std::vector<unsigned int> offsets);
 
 //Variables
 int input = 0;
+double resetsNumberDecenas = 0;
+double resetsNumberUnidades = 0;
+double resetsNumberCentenas = 0;
+double resetsNumberMil = 0;
+double resetsNumberDecMil = 0;
+double resetsNumberCentMil = 0;
+UINT resetIndex = 0;
 bool isReseting = false;
 bool isOpeningMenu = false;
 
@@ -142,11 +152,19 @@ void HookEmulator()
             std::cin >> input;
 
             mtx.lock();
-            if (input == 99 && !isReseting)
+            if (input == 99 && !isReseting && stop == false)
             {
+                stop = true;
+                input = 0;
                 isReseting = true;
                 Reset();
             }
+
+            if (input != 99)
+            {
+                stop = false;
+            }
+
             mtx.unlock();
         }
         
@@ -156,6 +174,40 @@ void HookEmulator()
 
 void Reset()
 {
+    resetsNumberUnidades += 0.5f;
+
+    if (resetsNumberUnidades > 9.5f)
+    {
+        resetsNumberUnidades = 0;
+        resetsNumberDecenas++;
+    }
+
+    if (resetsNumberDecenas > 9.5f)
+    {
+        resetsNumberDecenas = 0;
+        resetsNumberCentenas++;
+    }
+
+    if (resetsNumberCentenas > 9.5f)
+    {
+        resetsNumberCentenas = 0;
+        resetsNumberMil++;
+    }
+
+    if (resetsNumberMil > 9.5f)
+    {
+        resetsNumberMil = 0;
+        resetsNumberDecMil++;
+    }
+
+    if (resetsNumberDecMil > 9.5f)
+    {
+        resetsNumberDecMil = 0;
+        resetsNumberCentMil++;
+    }
+
+    WriteMemory({ 0xB8, 0x78, 0x670 }, 255);
+    Sleep(3000);
     //Reset CPU
     for (unsigned int x = 0; x < 0xFFFF; x++)
     {
@@ -194,6 +246,13 @@ void Reset()
 
     WriteMemory({ 0xB8, 0x78, 0x84 }, 0x8D);
 
+    WriteMemory({ 0x98, 0x70, 0x1F}, (BYTE)std::floor(resetsNumberUnidades));
+    WriteMemory({ 0x98, 0x70, 0x1E }, (BYTE)std::floor(resetsNumberDecenas));
+    WriteMemory({ 0x98, 0x70, 0x1D }, (BYTE)std::floor(resetsNumberCentenas));
+
+    WriteMemory({ 0x98, 0x70, 0x1C }, (BYTE)std::floor(resetsNumberMil));
+    WriteMemory({ 0x98, 0x70, 0x1B }, (BYTE)std::floor(resetsNumberDecMil));
+    WriteMemory({ 0x98, 0x70, 0x1A }, (BYTE)std::floor(resetsNumberCentMil));
 
     input = 0;
     isReseting = false;
@@ -257,12 +316,12 @@ void send_input() {
             LPVOID addressToWrite;
             if (input == 128)
             {
-                //addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xF8 });
+                addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xF8 });
             }           
             else
                 addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xFA });
             SIZE_T bytesWritten;
-            //BOOL result = WriteProcessMemory(hProcess, addressToWrite, &input, sizeof(input), &bytesWritten);
+            BOOL result = WriteProcessMemory(hProcess, addressToWrite, &input, sizeof(input), &bytesWritten);
         }
         mtx.unlock();
 
