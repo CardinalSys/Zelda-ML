@@ -13,6 +13,7 @@ HANDLE hProcess;
 uintptr_t baseAddress;
 
 bool stop = false;
+time_t lastTime = time(NULL);
 
 void HookEmulator();
 void GetVariables();
@@ -24,12 +25,12 @@ char ReadMemory(std::vector<unsigned int> offsets);
 
 //Variables
 int input = 0;
-double resetsNumberDecenas = 0;
-double resetsNumberUnidades = 0;
-double resetsNumberCentenas = 0;
-double resetsNumberMil = 0;
-double resetsNumberDecMil = 0;
-double resetsNumberCentMil = 0;
+int resetsNumberDecenas = 0;
+int resetsNumberUnidades = 0;
+int resetsNumberCentenas = 0;
+int resetsNumberMil = 0;
+int resetsNumberDecMil = 0;
+int resetsNumberCentMil = 0;
 UINT resetIndex = 0;
 bool isReseting = false;
 bool isOpeningMenu = false;
@@ -105,7 +106,7 @@ void HookEmulator()
         mtx.lock();
 
         //Save CPU
-        for (unsigned int x = 0; x < 0xFFFF; x++)
+        for (unsigned int x = 0; x < 0x067F; x++)
         {
             std::vector<unsigned int> offsets = { 0xB8, 0x58, x };
             uintptr_t address = FindDMAAddy(hProcess, baseAddress, offsets);
@@ -125,7 +126,7 @@ void HookEmulator()
         }
 
         //Save pallete
-        for (unsigned int x = 0; x < 0x1F; x++)
+        for (unsigned int x = 0; x < 0x001F; x++)
         {
             std::vector<unsigned int> offsets = { 0x68, 0x82 + x};
             uintptr_t address = FindDMAAddy(hProcess, baseAddress, offsets);
@@ -148,24 +149,19 @@ void HookEmulator()
             std::cout << (int)enemy1xProjectil << ";" << (int)enemy2xProjectil << ";" << (int)enemy3xProjectil << ";" << (int)enemy4xProjectil << ";";
             std::cout << (int)enemy1yProjectil << ";" << (int)enemy2yProjectil << ";" << (int)enemy3yProjectil << ";" << (int)enemy4yProjectil << ";" << (int)killsCount << "\n";
 
-
             std::cin >> input;
 
+
             mtx.lock();
-            if (input == 99 && !isReseting && stop == false)
+            if (input == 99 && !isReseting && (time(NULL) - lastTime) >= 10)
             {
-                stop = true;
                 input = 0;
                 isReseting = true;
+                lastTime = time(NULL);
                 Reset();
-            }
-
-            if (input != 99)
-            {
-                stop = false;
-            }
-
+            } 
             mtx.unlock();
+
         }
         
     }
@@ -174,65 +170,59 @@ void HookEmulator()
 
 void Reset()
 {
-    resetsNumberUnidades += 0.5f;
+    resetsNumberUnidades++;
 
-    if (resetsNumberUnidades > 9.5f)
+    if (resetsNumberUnidades > 9)
     {
         resetsNumberUnidades = 0;
         resetsNumberDecenas++;
     }
 
-    if (resetsNumberDecenas > 9.5f)
+    if (resetsNumberDecenas > 9)
     {
         resetsNumberDecenas = 0;
         resetsNumberCentenas++;
     }
 
-    if (resetsNumberCentenas > 9.5f)
+    if (resetsNumberCentenas > 9)
     {
         resetsNumberCentenas = 0;
         resetsNumberMil++;
     }
 
-    if (resetsNumberMil > 9.5f)
+    if (resetsNumberMil > 9)
     {
         resetsNumberMil = 0;
         resetsNumberDecMil++;
     }
 
-    if (resetsNumberDecMil > 9.5f)
+    if (resetsNumberDecMil > 9)
     {
         resetsNumberDecMil = 0;
         resetsNumberCentMil++;
     }
 
-    WriteMemory({ 0xB8, 0x78, 0x670 }, 255);
-    Sleep(3000);
+
     //Reset CPU
-    for (unsigned int x = 0; x < 0xFFFF; x++)
+    for (unsigned int x = 0; x < 0x067F; x++)
     {
         WriteMemory({ 0xB8, 0x58, x }, CPUMemory[x]);
     }
+
+    Sleep(100);
 
     //Reset nametable
     for (unsigned int x = 0; x < 0x3FF0; x++)
     {
         WriteMemory({ 0x98, 0x70, x }, nameTableMemory[x]);
     }
-
+    Sleep(100);
     //Reset palette
-    for (unsigned int x = 0; x < 0x1F; x++)
+    for (unsigned int x = 0; x < 0x001F; x++)
     {
         WriteMemory({ 0x68, 0x82 + x }, paletteMemory[x]);
     }
-
-    WriteMemory({ 0xB8, 0x78, 0x98 }, 0x8);
-
     Sleep(100);
-
-    WriteMemory({ 0xB8, 0x78, 0x12 }, 0x6);
-
-    Sleep(3000);
 
     WriteMemory({ 0xB8, 0x78, 0x98 }, 0x4);
 
@@ -246,13 +236,13 @@ void Reset()
 
     WriteMemory({ 0xB8, 0x78, 0x84 }, 0x8D);
 
-    WriteMemory({ 0x98, 0x70, 0x1F}, (BYTE)std::floor(resetsNumberUnidades));
-    WriteMemory({ 0x98, 0x70, 0x1E }, (BYTE)std::floor(resetsNumberDecenas));
-    WriteMemory({ 0x98, 0x70, 0x1D }, (BYTE)std::floor(resetsNumberCentenas));
+    WriteMemory({ 0x98, 0x70, 0x1F}, resetsNumberUnidades);
+    WriteMemory({ 0x98, 0x70, 0x1E }, resetsNumberDecenas);
+    WriteMemory({ 0x98, 0x70, 0x1D }, resetsNumberCentenas);
 
-    WriteMemory({ 0x98, 0x70, 0x1C }, (BYTE)std::floor(resetsNumberMil));
-    WriteMemory({ 0x98, 0x70, 0x1B }, (BYTE)std::floor(resetsNumberDecMil));
-    WriteMemory({ 0x98, 0x70, 0x1A }, (BYTE)std::floor(resetsNumberCentMil));
+    WriteMemory({ 0x98, 0x70, 0x1C }, resetsNumberMil);
+    WriteMemory({ 0x98, 0x70, 0x1B }, resetsNumberDecMil);
+    WriteMemory({ 0x98, 0x70, 0x1A }, resetsNumberCentMil);
 
     input = 0;
     isReseting = false;
@@ -260,8 +250,6 @@ void Reset()
 
 void GetVariables()
 {
-
-
     //Player
     playerXPos = ReadMemory({ 0xB8, 0x78, 0x70 });  
     playerYPos = ReadMemory({ 0xB8, 0x78, 0x84 });
