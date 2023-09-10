@@ -3,6 +3,10 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 import time
+import pyautogui
+import pydirectinput
+
+
 
 playerXPos = 0
 playerYPos = 0
@@ -140,10 +144,6 @@ class ZeldaEnv(gym.Env):
             self.reward -= 5
             self.terminated = True
 
-        if int(currentSword) == 1 and self.hasSword == False:
-            self.hasSword = True
-            self.repetition = 0
-            self.reward += 5
 
         if int(killsCount) > int(self.lastKillsCount): 
             self.reward += int(killsCount)
@@ -183,6 +183,7 @@ class ZeldaEnv(gym.Env):
         self.previousPlayerMapLocation = 0
         self.done = False
         p.stdin.write(b"99\n")
+        pydirectinput.press("f1")
         result = p.stdout.readline().strip()
         result = result.decode('utf-8')
         result = result.replace('Player:', '').replace('Enemies:', '')
