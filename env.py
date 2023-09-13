@@ -3,7 +3,6 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 import time
-import pyautogui
 import pydirectinput
 
 
@@ -15,6 +14,8 @@ playerMapLocation = 0
 previousPlayerMapLocation = 0
 playerLife = 0
 currentSword = 0
+
+
 
 playerBtnPressed = 0
 
@@ -62,23 +63,26 @@ class ZeldaEnv(gym.Env):
     def __init__(self):
         super(ZeldaEnv, self).__init__()
         self.previousPlayerMapLocation = 0
-        self.repetition = 0
+        self.steps = 0
         self.swordZone = False
         self.hasSword = False
         self.lastKillsCount = 0
+        self.resets = 0
         # Define action and self.observation space
         # They must be gym.spaces objects
         # Example when using discrete actions:
         self.action_space = spaces.Discrete(6)
         # Example for using image as input (channel-first; channel-last also works):
         self.observation_space = spaces.Box(low=0, high=255,
-                                            shape=(36,), dtype=np.int32)
+                                            shape=(35,), dtype=np.int32)
 
     def step(self, action):
-        self.repetition += 1
+        self.steps += 1
         result = p.stdout.readline().strip()
         result = result.decode('utf-8')
         result = result.replace('Player:', '').replace('Enemies:', '')
+
+        print(result)
 
         numbers = result.split(';')
 
@@ -123,24 +127,30 @@ class ZeldaEnv(gym.Env):
         killsCount = numbers[32]
 
         if action == 0:
-            p.stdin.write(b"1\n")
+            pydirectinput.press("w")
         elif action == 1:
-            p.stdin.write(b"2\n")
+            pydirectinput.press("a")
         elif action == 2:
-            p.stdin.write(b"4\n")
+            pydirectinput.press("s")
         elif action == 3:
-            p.stdin.write(b"8\n")
+            pydirectinput.press("d")
         elif action == 4:
-            p.stdin.write(b"64\n")
+            pydirectinput.press("k")
         elif action == 5:
-            p.stdin.write(b"128\n") 
+            pydirectinput.press("j") 
+
+        print("action: " + str(action))
         
         self.reward = 0
-        
+        p.stdin.write(b"1\n")
         p.stdin.flush()
         self.terminated = False
 
-        if int(playerLife) == 125:
+        #if(self.hasSword == False and currentSword == 1):
+        #    self.hasSword == True
+        #    self.reward += 20
+
+        if int(playerLife) == 0:
             self.reward -= 5
             self.terminated = True
 
@@ -149,8 +159,8 @@ class ZeldaEnv(gym.Env):
             self.reward += int(killsCount)
             self.repetition = 0
         
-        if self.repetition == 300:
-            self.repetition = 0
+        if self.steps == 300:
+            self.steps = 0
             self.reward -= 1
             self.terminated = True
 
@@ -161,12 +171,11 @@ class ZeldaEnv(gym.Env):
         self.observation = [playerXPos, playerYPos, playerDir, playerMapLocation, playerLife, currentSword, enemy1xPos, enemy2xPos, enemy3xPos, enemy4xPos,
                              enemy5xPos, enemy6xPos, enemy1yPos, enemy2yPos, enemy3yPos, enemy4yPos, enemy5yPos, enemy6yPos,
                              enemy1Dir, enemy2Dir, enemy3Dir, enemy4Dir, enemy5Dir, enemy6Dir, enemy1xProjectil, enemy2xProjectil,
-                             enemy3xProjectil, enemy4xProjectil, enemy1yProjectil, enemy2yProjectil, enemy3yProjectil, enemy4yProjectil, self.lastKillsCount, killsCount, self.repetition, self.previousPlayerMapLocation]
+                             enemy3xProjectil, enemy4xProjectil, enemy1yProjectil, enemy2yProjectil, enemy3yProjectil, enemy4yProjectil, self.lastKillsCount, killsCount, self.steps]
         
         self.observation = [int(x) for x in self.observation]
         self.observation = np.array(self.observation)
-        
-        self.previousPlayerMapLocation = playerMapLocation
+
         self.lastKillsCount = killsCount
 
         if self.terminated:
@@ -176,17 +185,20 @@ class ZeldaEnv(gym.Env):
         return self.observation, self.reward, self.terminated, self.truncated, info
 
     def reset(self, seed=None, options=None):
+        self.resets +=1
+        print("action: " + str(self.resets))
         self.lastKillsCount = 0
         self.hasSword = False
         self.swordZone = False
-        self.repetition = 0
-        self.previousPlayerMapLocation = 0
+        self.steps = 0
         self.done = False
-        p.stdin.write(b"99\n")
         pydirectinput.press("f1")
         result = p.stdout.readline().strip()
         result = result.decode('utf-8')
         result = result.replace('Player:', '').replace('Enemies:', '')
+
+        p.stdin.write(b"1\n")
+        p.stdin.flush()
 
         numbers = result.split(';')
 
@@ -228,13 +240,15 @@ class ZeldaEnv(gym.Env):
         enemy3yProjectil = numbers[30]
         enemy4yProjectil = numbers[31]
         killsCount = numbers[32]
-        p.stdin.flush()
         self.observation = [playerXPos, playerYPos, playerDir, playerMapLocation, playerLife, currentSword, enemy1xPos, enemy2xPos, enemy3xPos, enemy4xPos,
                              enemy5xPos, enemy6xPos, enemy1yPos, enemy2yPos, enemy3yPos, enemy4yPos, enemy5yPos, enemy6yPos,
                              enemy1Dir, enemy2Dir, enemy3Dir, enemy4Dir, enemy5Dir, enemy6Dir, enemy1xProjectil, enemy2xProjectil,
-                             enemy3xProjectil, enemy4xProjectil, enemy1yProjectil, enemy2yProjectil, enemy3yProjectil, enemy4yProjectil, self.lastKillsCount, killsCount, self.repetition, self.previousPlayerMapLocation]
+                             enemy3xProjectil, enemy4xProjectil, enemy1yProjectil, enemy2yProjectil, enemy3yProjectil, enemy4yProjectil, self.lastKillsCount, killsCount, self.steps]
         
         self.observation = [int(x) for x in self.observation]
         self.observation = np.array(self.observation)
         info = {}
         return self.observation, info
+    
+    def close(self):
+        print("Finished")

@@ -18,8 +18,7 @@ time_t lastTime = time(NULL) - 10;
 
 void HookEmulator();
 void GetVariables();
-void send_input();
-void Reset();
+void ShowRepetitions();
 void WriteMemory(std::vector<unsigned int> offsets, BYTE value);
 char ReadMemory(std::vector<unsigned int> offsets);
 
@@ -83,9 +82,7 @@ BYTE enemy4yProjectil = 0;
 
 int main()
 {
-    std::thread input_thread(send_input);
     HookEmulator();
-    input_thread.join();
 }
 
 void HookEmulator()
@@ -101,15 +98,10 @@ void HookEmulator()
         hProcess = OpenProcess(PROCESS_ALL_ACCESS, NULL, procId);
         //Resolve base address
         baseAddress = moduleBase + 0x042E0F30;
-        mtx.lock();
-
-        mtx.unlock();
-
 
         while (true)
         {
             GetVariables();
-            Sleep(100);
             //Print a string with all data so python subprocess can read it
             std::cout << "Player:" << (int)playerXPos << ";" << (int)playerYPos << ";" << (int)playerDir << ";" << (int)playerMapLocation << ";" << (int)playerLife << ";" << (int)currentSword << ";";
             std::cout << "Enemies:" << (int)enemy1xPos << ";" << (int)enemy2xPos << ";" << (int)enemy3xPos << ";" << (int)enemy4xPos << ";" << (int)enemy5xPos << ";" << (int)enemy6xPos << ";";
@@ -118,28 +110,17 @@ void HookEmulator()
             std::cout << (int)enemy1xProjectil << ";" << (int)enemy2xProjectil << ";" << (int)enemy3xProjectil << ";" << (int)enemy4xProjectil << ";";
             std::cout << (int)enemy1yProjectil << ";" << (int)enemy2yProjectil << ";" << (int)enemy3yProjectil << ";" << (int)enemy4yProjectil << ";" << (int)killsCount << "\n";
 
-
             std::cin >> input;
 
-            mtx.lock();
-            if (input == 99 && !isReseting && (time(NULL) - lastTime) >= 10)
-            {
-                input = 0;
-                isReseting = true;
-                lastTime = time(NULL);
-                Reset();
-            }
-
-            mtx.unlock();
+            //ShowRepetitions();
         }
 
     }
 }
 
 
-void Reset()
+void ShowRepetitions()
 {
-    Sleep(1000);
     WriteMemory({ 0xB8, 0x78, 0x657 }, 1);
 
     resetsNumberUnidades++;
@@ -190,8 +171,6 @@ void Reset()
 
 void GetVariables()
 {
-
-
     //Player
     playerXPos = ReadMemory({ 0xB8, 0x78, 0x70 });
     playerYPos = ReadMemory({ 0xB8, 0x78, 0x84 });
@@ -234,28 +213,6 @@ void GetVariables()
     enemy2yProjectil = ReadMemory({ 0xB8, 0x78, 0x8C });
     enemy3yProjectil = ReadMemory({ 0xB8, 0x78, 0x8D });
     enemy4yProjectil = ReadMemory({ 0xB8, 0x78, 0x8E });
-}
-
-void send_input() {
-
-    while (true)
-    {
-        mtx.lock();
-        if (!isReseting && (gameStatus == 5 || gameStatus == 11) && (input == 1 || input == 2 || input == 4 || input == 8 || input == 64 || input == 128))
-        {
-            LPVOID addressToWrite;
-            if (input == 128)
-            {
-                addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xF8 });
-            }
-            else
-                addressToWrite = (LPVOID)FindDMAAddy(hProcess, baseAddress, { 0xB8, 0x78, 0xFA });
-            SIZE_T bytesWritten;
-            BOOL result = WriteProcessMemory(hProcess, addressToWrite, &input, sizeof(input), &bytesWritten);
-        }
-        mtx.unlock();
-
-    }
 }
 
 
